@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Purchase Order</title>
+<style>
+  :root{
+    --navy-bg-1:#050b1a;
+    --navy-bg-2:#0b1530;
+    --navy-glass: rgba(30,50,90,0.35);
+    --navy-glass-strong: rgba(30,50,90,0.55);
+    --navy-border: rgba(140,170,255,0.18);
+    --red-glass: rgba(110,20,30,0.38);
+    --red-glass-strong: rgba(110,20,30,0.58);
+    --red-border: rgba(255,120,120,0.22);
+    --accent-blue:#5b8dff;
+    --accent-red:#ff6b6b;
+    --text-main:#e8edfb;
+    --text-dim:#9fb0d6;
+    --ok:#3ddc97;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;}
+  html,body{
+    height:100%;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background:
+      radial-gradient(1200px 800px at 15% -10%, rgba(80,110,220,0.25), transparent 60%),
+      radial-gradient(1000px 700px at 100% 10%, rgba(60,30,120,0.2), transparent 55%),
+      linear-gradient(160deg, var(--navy-bg-1), var(--navy-bg-2));
+    color:var(--text-main);
+    min-height:100vh;
+  }
+  .app{
+    display:flex;
+    min-height:100vh;
+  }
+
+  /* ---------- HAMBURGER TOGGLE ---------- */
+  .menu-toggle{
+    position:fixed;
+    top:20px;
+    left:20px;
+    z-index:120;
+    width:46px;
+    height:46px;
+    border-radius:12px;
+    background:rgba(20,30,58,0.65);
+    border:1px solid var(--navy-border);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    gap:0;
+    flex-direction:column;
+    transition:background 0.15s;
+  }
+  .menu-toggle:hover{ background:rgba(30,44,80,0.8); }
+  .menu-toggle span{
+    display:block;
+    width:20px;
+    height:2px;
+    background:var(--text-main);
+    margin:2.5px 0;
+    border-radius:2px;
+    transition:transform 0.25s ease, opacity 0.2s ease;
+  }
+  .menu-toggle.open span:nth-child(1){ transform:translateY(5px) rotate(45deg); }
+  .menu-toggle.open span:nth-child(2){ opacity:0; }
+  .menu-toggle.open span:nth-child(3){ transform:translateY(-5px) rotate(-45deg); }
+
+  .sidebar-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.45);
+    backdrop-filter: blur(2px);
+    z-index:99;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity 0.25s ease;
+  }
+  .sidebar-overlay.show{ opacity:1; pointer-events:auto; }
+
+  /* ---------- SIDEBAR (drawer, tersembunyi secara default) ---------- */
+  .sidebar{
+    position:fixed;
+    top:0;
+    left:0;
+    height:100vh;
+    width:260px;
+    flex-shrink:0;
+    padding:80px 16px 28px 16px;
+    background:rgba(10,18,40,0.7);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-right:1px solid var(--navy-border);
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    z-index:110;
+    transform:translateX(-100%);
+    transition:transform 0.28s ease;
+    box-shadow:0 0 40px rgba(0,0,0,0.4);
+  }
+  .sidebar.open{ transform:translateX(0); }
+  .brand{
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    color:var(--text-main);
+    padding:0 10px 22px 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:linear-gradient(135deg,#5b8dff,#3ddc97);
+    box-shadow:0 0 12px rgba(91,141,255,0.8);
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    border-radius:12px;
+    cursor:pointer;
+    color:var(--text-dim);
+    font-size:14px;
+    transition:background 0.15s ease, color 0.15s ease;
+    position:relative;
+  }
+  .nav-item:hover{
+    background:rgba(255,255,255,0.05);
+    color:var(--text-main);
+  }
+  .nav-item.active{
+    background:var(--navy-glass-strong);
+    color:#fff;
+    border:1px solid var(--navy-border);
+  }
+  .nav-item.active.red{
+    background:var(--red-glass-strong);
+    border:1px solid var(--red-border);
+  }
+  .nav-icon{ font-size:17px; width:20px; text-align:center; }
+  .nav-count{
+    margin-left:auto;
+    font-size:11px;
+    background:rgba(255,255,255,0.1);
+    padding:2px 7px;
+    border-radius:20px;
+    color:var(--text-main);
+    min-width:18px;
+    text-align:center;
+  }
+  .nav-count.warn{ background:rgba(255,107,107,0.25); color:#ffb3b3; }
+
+  /* ---------- MAIN ---------- */
+  .main{
+    flex:1;
+    padding:32px 40px 32px 96px;
+    overflow-y:auto;
+    max-height:100vh;
+    width:100%;
+  }
+  .page{ display:none; animation: fadeIn 0.25s ease; }
+  .page.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .page-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .page-title{ font-size:22px; font-weight:600; margin:0; }
+  .page-sub{ color:var(--text-dim); font-size:13px; margin-top:4px; }
+
+  .glass-card{
+    background:var(--navy-glass);
+    border:1px solid var(--navy-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius:18px;
+    padding:22px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+  .glass-card.red{
+    background:var(--red-glass);
+    border:1px solid var(--red-border);
+  }
+
+  .section-block{ margin-bottom:26px; }
+  .section-label{
+    font-size:13px;
+    color:var(--text-dim);
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-label .pulse{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--accent-blue);
+    box-shadow:0 0 8px var(--accent-blue);
+  }
+  .section-label.red .pulse{ background:var(--accent-red); box-shadow:0 0 8px var(--accent-red); }
+
+  /* Upload zone */
+  .upload-row{ display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
+  .file-label{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 18px;
+    border-radius:10px;
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--navy-border);
+    cursor:pointer;
+    font-size:13px;
+    color:var(--text-main);
+    transition:background 0.15s;
+  }
+  .file-label:hover{ background:rgba(255,255,255,0.1); }
+  .glass-card.red .file-label{ border:1px solid var(--red-border); }
+  input[type=file]{ display:none; }
+  input[type=text], input[type=date], select, textarea{
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--navy-border);
+    color:var(--text-main);
+    padding:10px 12px;
+    border-radius:10px;
+    font-size:13px;
+    outline:none;
+  }
+  input[type=text]:focus, textarea:focus, select:focus{ border-color:var(--accent-blue); }
+  textarea{ width:100%; resize:vertical; min-height:60px; font-family:inherit; }
+
+  .btn{
+    padding:10px 16px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    background:var(--accent-blue);
+    color:#06122c;
+    transition:filter 0.15s, transform 0.1s;
+  }
+  .btn:hover{ filter:brightness(1.1); }
+  .btn:active{ transform:scale(0.97); }
+  .btn.red{ background:var(--accent-red); color:#2c0606; }
+  .btn.ghost{
+    background:rgba(255,255,255,0.08);
+    color:var(--text-main);
+  }
+
+  /* Item cards */
+  .item-list{ display:flex; flex-direction:column; gap:10px; }
+  .item-card{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:12px 14px;
+    border-radius:12px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.06);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .item-card.pending{
+    border-left:3px solid var(--accent-blue);
+    background:rgba(91,141,255,0.08);
+  }
+  .glass-card.red .item-card.pending{
+    border-left:3px solid var(--accent-red);
+    background:rgba(255,107,107,0.08);
+  }
+  .item-card.done{ opacity:0.55; }
+  .item-card input[type=checkbox]{
+    width:19px; height:19px;
+    accent-color: var(--accent-blue);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .glass-card.red .item-card input[type=checkbox]{ accent-color: var(--accent-red); }
+  .item-icon{ font-size:20px; flex-shrink:0; }
+  .item-info{ flex:1; min-width:0; }
+  .item-name{ font-size:13.5px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .item-name.strike{ text-decoration:line-through; color:var(--text-dim); }
+  .item-meta{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .item-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .icon-btn{
+    background:rgba(255,255,255,0.07);
+    border:none;
+    color:var(--text-main);
+    width:30px; height:30px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:hover{ background:rgba(255,255,255,0.14); }
+  .icon-btn.del:hover{ background:rgba(255,80,80,0.3); }
+
+  .empty-state{
+    text-align:center;
+    padding:30px 10px;
+    color:var(--text-dim);
+    font-size:13px;
+  }
+
+  /* date group (PO storage) */
+  .date-group{ margin-bottom:20px; }
+  .date-heading{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
+    padding-bottom:8px;
+    border-bottom:1px dashed rgba(255,255,255,0.15);
+  }
+  .date-heading .d-text{ font-size:13px; font-weight:600; color:#c9d6f5; }
+  .date-heading .d-count{ font-size:11px; color:var(--text-dim); }
+
+  /* Transfer Order gallery */
+  .to-toolbar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
+  .to-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(220px,1fr));
+    gap:16px;
+  }
+  .to-card{
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  .to-card img{ width:100%; height:140px; object-fit:cover; display:block; background:#0b1530; }
+  .to-card-body{ padding:12px 14px; display:flex; flex-direction:column; gap:6px; }
+  .to-toserba{
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 10px;
+    border-radius:20px;
+    background:rgba(91,141,255,0.2);
+    color:#a9c1ff;
+    width:fit-content;
+  }
+  .to-note{ font-size:12.5px; color:var(--text-main); line-height:1.4; }
+  .to-date{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .to-del{ align-self:flex-end; }
+
+  /* Home page */
+  .home-grid{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap:22px;
+  }
+  @media (max-width:900px){ .home-grid{ grid-template-columns:1fr; } }
+  .stat-row{ display:flex; gap:14px; margin-bottom:22px; flex-wrap:wrap; }
+  .stat-box{
+    flex:1;
+    min-width:130px;
+    padding:16px 18px;
+    border-radius:14px;
+    background:var(--navy-glass);
+    border:1px solid var(--navy-border);
+    backdrop-filter: blur(14px);
+  }
+  .stat-num{ font-size:26px; font-weight:700; }
+  .stat-label{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  .task-input-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .task-input-row input{ flex:1; }
+
+  .task-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border-radius:10px;
+    background:rgba(255,255,255,0.04);
+    margin-bottom:8px;
+  }
+  .task-item input[type=checkbox]{ width:17px; height:17px; accent-color:var(--ok); cursor:pointer;}
+  .task-text{ flex:1; font-size:13px; }
+  .task-text.done{ text-decoration:line-through; color:var(--text-dim); }
+  .src-tag{
+    font-size:10px;
+    padding:2px 8px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.08);
+    color:var(--text-dim);
+    flex-shrink:0;
+  }
+
+  /* PDF preview modal */
+  .modal-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(4px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    width:min(800px, 92vw);
+    height:min(85vh, 900px);
+    background:#0d1730;
+    border:1px solid var(--navy-border);
+    border-radius:16px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .modal-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    font-size:13px;
+  }
+  .modal-close{
+    background:none; border:none; color:var(--text-main);
+    font-size:18px; cursor:pointer;
+  }
+  .modal-body{ flex:1; }
+  .modal-body iframe, .modal-body img{ width:100%; height:100%; border:none; object-fit:contain; }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.15); border-radius:10px; }
+
+  @media (max-width:760px){
+    .sidebar{ width:82vw; max-width:300px; }
+    .main{ padding:80px 18px 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" id="menu-toggle" aria-label="Buka menu" onclick="toggleSidebar()">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-dot"></span> PO Control Center</div>
+
+    <div class="nav-item active" data-page="home">
+      <span class="nav-icon">🏠</span> Home
+      <span class="nav-count warn" id="nav-count-home">0</span>
+    </div>
+    <div class="nav-item" data-page="ppm">
+      <span class="nav-icon">📘</span> PO Toserba PPM
+      <span class="nav-count" id="nav-count-ppm">0</span>
+    </div>
+    <div class="nav-item" data-page="pmp">
+      <span class="nav-icon">📕</span> PO Toserba PMP
+      <span class="nav-count" id="nav-count-pmp">0</span>
+    </div>
+    <div class="nav-item" data-page="po">
+      <span class="nav-icon">🗂️</span> Penyimpanan File PO
+      <span class="nav-count" id="nav-count-po">0</span>
+    </div>
+    <div class="nav-item" data-page="to">
+      <span class="nav-icon">🚚</span> Transfer Order
+      <span class="nav-count" id="nav-count-to">0</span>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ================= HOME ================= -->
+    <div class="page active" id="page-home">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Home</h1>
+          <div class="page-sub">Ringkasan pekerjaan yang belum selesai</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-num" id="stat-total-pending">0</div><div class="stat-label">Total belum diceklist</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-ppm-pending">0</div><div class="stat-label">PPM pending</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-pmp-pending">0</div><div class="stat-label">PMP pending</div></div>
+        <div class="stat-box"><div class="stat-num" id="stat-po-pending">0</div><div class="stat-label">File PO pending</div></div>
+      </div>
+
+      <div class="home-grid">
+        <div class="glass-card">
+          <div class="section-label"><span class="pulse"></span> Barang / PO belum diceklist</div>
+          <div class="item-list" id="home-pending-list"></div>
+        </div>
+
+        <div class="glass-card">
+          <div class="section-label"><span class="pulse"></span> Input Tugas</div>
+          <div class="task-input-row">
+            <input type="text" id="task-input" placeholder="Tulis tugas baru...">
+            <button class="btn" onclick="addTask()">Tambah</button>
+          </div>
+          <div id="task-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PO PPM ================= -->
+    <div class="page" id="page-ppm">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">PO Toserba PPM</h1>
+          <div class="page-sub">Input PDF Purchase Order untuk Toserba PPM</div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="upload-row">
+          <label class="file-label" for="ppm-file">📎 Pilih file PDF</label>
+          <input type="file" id="ppm-file" accept="application/pdf" onchange="handleUpload('ppm', this)">
+          <span style="font-size:12px; color:var(--text-dim);">PDF akan otomatis masuk ke daftar "Belum diceklist" di atas.</span>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label"><span class="pulse"></span> Belum diceklist</div>
+          <div class="item-list" id="ppm-pending"></div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label" style="opacity:0.7;">✔ Sudah diceklist</div>
+          <div class="item-list" id="ppm-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PO PMP (red glass) ================= -->
+    <div class="page" id="page-pmp">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">PO Toserba PMP</h1>
+          <div class="page-sub">Input PDF Purchase Order untuk Toserba PMP</div>
+        </div>
+      </div>
+
+      <div class="glass-card red">
+        <div class="upload-row">
+          <label class="file-label" for="pmp-file">📎 Pilih file PDF</label>
+          <input type="file" id="pmp-file" accept="application/pdf" onchange="handleUpload('pmp', this)">
+          <span style="font-size:12px; color:var(--text-dim);">PDF akan otomatis masuk ke daftar "Belum diceklist" di atas.</span>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label red"><span class="pulse"></span> Belum diceklist</div>
+          <div class="item-list" id="pmp-pending"></div>
+        </div>
+
+        <div class="section-block">
+          <div class="section-label red" style="opacity:0.7;">✔ Sudah diceklist</div>
+          <div class="item-list" id="pmp-done"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PENYIMPANAN FILE PO ================= -->
+    <div class="page" id="page-po">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Penyimpanan File Purchase Order</h1>
+          <div class="page-sub">Arsip PO harian, dikelompokkan per tanggal input</div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="upload-row">
+          <label class="file-label" for="po-file">📎 Upload PDF Purchase Order</label>
+          <input type="file" id="po-file" accept="application/pdf" onchange="handleUpload('po', this)">
+        </div>
+        <div id="po-groups"></div>
+      </div>
+    </div>
+
+    <!-- ================= TRANSFER ORDER ================= -->
+    <div class="page" id="page-to">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Penyimpanan Transfer Order</h1>
+          <div class="page-sub">Upload foto barang, catatan, dan tracking per Toserba</div>
+        </div>
+      </div>
+
+      <div class="glass-card">
+        <div class="upload-row" style="align-items:flex-start;">
+          <label class="file-label" for="to-file">🖼️ Pilih gambar</label>
+          <input type="file" id="to-file" accept="image/*" onchange="previewToImage(this)">
+          <input type="text" id="to-toserba" placeholder="Nama Toserba tujuan" style="min-width:180px;">
+        </div>
+        <div class="upload-row">
+          <textarea id="to-note" placeholder="Tulis catatan transfer order..."></textarea>
+        </div>
+        <div class="upload-row">
+          <button class="btn" onclick="addTransferOrder()">Simpan Transfer Order</button>
+          <span id="to-file-name" style="font-size:12px;color:var(--text-dim);"></span>
+        </div>
+
+        <div class="to-toolbar">
+          <span style="font-size:12px;color:var(--text-dim);">Filter Toserba:</span>
+          <select id="to-filter" onchange="renderTO()">
+            <option value="">Semua</option>
+          </select>
+        </div>
+
+        <div class="to-grid" id="to-grid"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PDF/Image preview modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span id="modal-title">Preview</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- Banner peringatan jika Firebase belum dikonfigurasi -->
+<div id="firebase-warning" style="display:none; position:fixed; bottom:16px; left:16px; right:16px; z-index:200; background:rgba(180,40,40,0.9); backdrop-filter:blur(10px); color:#fff; padding:14px 18px; border-radius:12px; font-size:13px; max-width:640px; margin:0 auto; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+  ⚠️ <b>Firebase belum dikonfigurasi.</b> Buka file HTML ini dengan text editor, cari bagian <code>firebaseConfig</code> di dalam &lt;script&gt;, lalu isi dengan config project Firebase kamu sendiri. Tanpa ini, data tidak akan tersimpan online / tidak bisa dibagikan ke orang lain.
+</div>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+/* ============================================================
+   FIREBASE CONFIG
+   ---------------------------------------------------------
+   GANTI seluruh nilai di bawah ini dengan config dari project
+   Firebase kamu sendiri:
+   1. Buka https://console.firebase.google.com
+   2. Buat project baru (gratis)
+   3. Tambahkan "Web App" di project settings
+   4. Aktifkan "Firestore Database" (mode production/test)
+   5. Salin config yang diberikan lalu tempel di bawah ini
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBoqAyELw0tCFcgW9QnVZZe-96GRLiFPnY",
+  authDomain: "my-project-010826de.firebaseapp.com",
+  projectId: "my-project-010826de",
+  storageBucket: "my-project-010826de.firebasestorage.app",
+  messagingSenderId: "585916717344",
+  appId: "1:585916717344:web:e2f16c5895333d3fb05f45"
+};
+
+let db = null;
+let firebaseReady = false;
+try{
+  if(firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('GANTI')){
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    firebaseReady = true;
+  }
+}catch(e){
+  console.error('Gagal inisialisasi Firebase:', e);
+}
+
+if(!firebaseReady){
+  document.getElementById('firebase-warning').style.display = 'block';
+}
+
+/* ============================================================
+   STATE (disinkronkan realtime dari Firestore)
+============================================================ */
+let state = { ppm:[], pmp:[], po:[], to:[], tasks:[] };
+
+function attachListeners(){
+  if(!firebaseReady) return;
+
+  ['ppm','pmp','po'].forEach(section=>{
+    db.collection(section+'_items').onSnapshot(snapshot=>{
+      state[section] = snapshot.docs.map(doc=>({ id: doc.id, ...doc.data() }));
+      renderAll();
+    }, err=>console.error(section+' listener error:', err));
+  });
+
+  db.collection('transfer_orders').onSnapshot(snapshot=>{
+    state.to = snapshot.docs.map(doc=>({ id: doc.id, ...doc.data() }));
+    renderAll();
+  }, err=>console.error('transfer_orders listener error:', err));
+
+  db.collection('tasks').onSnapshot(snapshot=>{
+    state.tasks = snapshot.docs.map(doc=>({ id: doc.id, ...doc.data() }));
+    renderAll();
+  }, err=>console.error('tasks listener error:', err));
+}
+
+let pendingToImage = null; // {name, data}
+
+/* ============================================================
+   SIDEBAR TOGGLE (menu garis tiga)
+============================================================ */
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+  document.getElementById('menu-toggle').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+  document.getElementById('menu-toggle').classList.remove('open');
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active','red'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    item.classList.add('active');
+    if(item.dataset.page === 'pmp') item.classList.add('red');
+    document.getElementById('page-'+item.dataset.page).classList.add('active');
+    closeSidebar();
+  });
+});
+
+/* ============================================================
+   HELPERS
+============================================================ */
+function uid(){ return 'id'+Date.now()+Math.random().toString(16).slice(2); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function formatDate(iso){
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'long', year:'numeric'});
+}
+function formatDateTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) + ' · ' +
+         d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+}
+function readFileAsDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const r = new FileReader();
+    r.onload = ()=>resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+/* ============================================================
+   UPLOAD PDF (ppm / pmp / po)
+============================================================ */
+const MAX_FILE_BYTES = 700 * 1024; // ~700KB, batas aman untuk 1 dokumen Firestore
+
+async function handleUpload(section, inputEl){
+  if(!firebaseReady){ alert('Firebase belum dikonfigurasi. Lihat peringatan di bawah layar.'); inputEl.value=''; return; }
+  const file = inputEl.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf'){
+    alert('Mohon pilih file PDF.');
+    inputEl.value='';
+    return;
+  }
+  if(file.size > MAX_FILE_BYTES){
+    alert('Ukuran file terlalu besar (maks ±700KB) untuk disimpan online. Kompres PDF terlebih dahulu.');
+    inputEl.value='';
+    return;
+  }
+  const dataUrl = await readFileAsDataURL(file);
+  try{
+    await db.collection(section+'_items').add({
+      name: file.name,
+      data: dataUrl,
+      checked: false,
+      date: todayISO(),
+      ts: Date.now()
+    });
+  }catch(e){
+    console.error(e);
+    alert('Gagal menyimpan ke server. Cek koneksi internet / konfigurasi Firebase.');
+  }
+  inputEl.value = '';
+}
+
+async function toggleCheck(section, id){
+  if(!firebaseReady) return;
+  const item = state[section].find(i=>i.id===id);
+  if(!item) return;
+  try{
+    await db.collection(section+'_items').doc(id).update({ checked: !item.checked });
+  }catch(e){
+    console.error(e);
+    alert('Gagal update status. Cek koneksi internet.');
+  }
+}
+
+async function deleteItem(section, id){
+  if(!firebaseReady) return;
+  if(!confirm('Hapus item ini?')) return;
+  try{
+    await db.collection(section+'_items').doc(id).delete();
+  }catch(e){
+    console.error(e);
+    alert('Gagal menghapus. Cek koneksi internet.');
+  }
+}
+
+/* ============================================================
+   RENDER: PPM / PMP (pending on top, done below)
+============================================================ */
+function renderChecklistSection(section){
+  const pendingEl = document.getElementById(section+'-pending');
+  const doneEl = document.getElementById(section+'-done');
+  const items = [...state[section]].sort((a,b)=> b.ts - a.ts);
+  const pending = items.filter(i=>!i.checked);
+  const done = items.filter(i=>i.checked);
+
+  pendingEl.innerHTML = pending.length ? pending.map(i=>itemCardHTML(section,i,true)).join('') :
+    `<div class="empty-state">Tidak ada PDF yang menunggu diceklist 🎉</div>`;
+
+  doneEl.innerHTML = done.length ? done.map(i=>itemCardHTML(section,i,false)).join('') :
+    `<div class="empty-state">Belum ada yang diselesaikan.</div>`;
+}
+
+function itemCardHTML(section, item, isPending){
+  return `
+  <div class="item-card ${isPending?'pending':'done'}">
+    <input type="checkbox" ${item.checked?'checked':''} onchange="toggleCheck('${section}','${item.id}')">
+    <div class="item-icon">📄</div>
+    <div class="item-info">
+      <div class="item-name ${item.checked?'strike':''}">${escapeHTML(item.name)}</div>
+      <div class="item-meta">${formatDateTime(item.ts)}</div>
+    </div>
+    <div class="item-actions">
+      <button class="icon-btn" onclick="openPdf('${section}','${item.id}')" title="Lihat PDF">👁️</button>
+      <button class="icon-btn del" onclick="deleteItem('${section}','${item.id}')" title="Hapus">🗑️</button>
+    </div>
+  </div>`;
+}
+
+function escapeHTML(str){
+  const d = document.createElement('div');
+  d.innerText = str;
+  return d.innerHTML;
+}
+
+/* ============================================================
+   RENDER: Penyimpanan File PO (grouped by date)
+============================================================ */
+function renderPOGroups(){
+  const container = document.getElementById('po-groups');
+  const items = [...state.po].sort((a,b)=> b.ts - a.ts);
+  if(!items.length){
+    container.innerHTML = `<div class="empty-state">Belum ada file PO yang diupload.</div>`;
+    return;
+  }
+  const groups = {};
+  items.forEach(i=>{
+    if(!groups[i.date]) groups[i.date] = [];
+    groups[i.date].push(i);
+  });
+  const dates = Object.keys(groups).sort((a,b)=> b.localeCompare(a));
+  container.innerHTML = dates.map(date=>{
+    const list = groups[date];
+    const doneCount = list.filter(i=>i.checked).length;
+    return `
+    <div class="date-group">
+      <div class="date-heading">
+        <span class="d-text">📅 ${formatDate(date)}</span>
+        <span class="d-count">${doneCount}/${list.length} diceklist</span>
+      </div>
+      <div class="item-list">
+        ${list.map(i=>itemCardHTML('po', i, !i.checked)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   TRANSFER ORDER
+============================================================ */
+function previewToImage(inputEl){
+  const file = inputEl.files[0];
+  if(!file) return;
+  readFileAsDataURL(file).then(dataUrl=>{
+    pendingToImage = { name:file.name, data:dataUrl };
+    document.getElementById('to-file-name').textContent = 'Terpilih: '+file.name;
+  });
+}
+
+async function addTransferOrder(){
+  if(!firebaseReady){ alert('Firebase belum dikonfigurasi.'); return; }
+  const toserba = document.getElementById('to-toserba').value.trim();
+  const note = document.getElementById('to-note').value.trim();
+  if(!pendingToImage){ alert('Pilih gambar terlebih dahulu.'); return; }
+  if(!toserba){ alert('Isi nama Toserba tujuan.'); return; }
+
+  try{
+    await db.collection('transfer_orders').add({
+      image: pendingToImage.data,
+      fileName: pendingToImage.name,
+      toserba,
+      note,
+      date: todayISO(),
+      ts: Date.now()
+    });
+  }catch(e){
+    console.error(e);
+    alert('Gagal menyimpan. Cek koneksi internet, atau ukuran gambar terlalu besar (maks ±700KB).');
+    return;
+  }
+
+  pendingToImage = null;
+  document.getElementById('to-file').value = '';
+  document.getElementById('to-toserba').value = '';
+  document.getElementById('to-note').value = '';
+  document.getElementById('to-file-name').textContent = '';
+}
+
+async function deleteTO(id){
+  if(!firebaseReady) return;
+  if(!confirm('Hapus transfer order ini?')) return;
+  try{
+    await db.collection('transfer_orders').doc(id).delete();
+  }catch(e){
+    console.error(e);
+    alert('Gagal menghapus. Cek koneksi internet.');
+  }
+}
+
+function renderTO(){
+  const grid = document.getElementById('to-grid');
+  const filterSel = document.getElementById('to-filter');
+
+  const toserbaSet = [...new Set(state.to.map(i=>i.toserba))].sort();
+  const currentFilter = filterSel.value;
+  filterSel.innerHTML = '<option value="">Semua</option>' +
+    toserbaSet.map(t=>`<option value="${escapeHTML(t)}" ${t===currentFilter?'selected':''}>${escapeHTML(t)}</option>`).join('');
+
+  let items = [...state.to].sort((a,b)=> b.ts - a.ts);
+  if(currentFilter) items = items.filter(i=>i.toserba === currentFilter);
+
+  if(!items.length){
+    grid.innerHTML = `<div class="empty-state">Belum ada transfer order.</div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(i=>`
+    <div class="to-card">
+      <img src="${i.image}" alt="${escapeHTML(i.fileName)}" onclick="openImage('${i.id}')" style="cursor:pointer;">
+      <div class="to-card-body">
+        <span class="to-toserba">${escapeHTML(i.toserba)}</span>
+        <div class="to-note">${escapeHTML(i.note) || '<em style="color:var(--text-dim)">Tanpa catatan</em>'}</div>
+        <div class="to-date">📅 ${formatDateTime(i.ts)}</div>
+        <button class="icon-btn del to-del" onclick="deleteTO('${i.id}')" title="Hapus">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   TASKS (Home)
+============================================================ */
+async function addTask(){
+  if(!firebaseReady){ alert('Firebase belum dikonfigurasi.'); return; }
+  const input = document.getElementById('task-input');
+  const text = input.value.trim();
+  if(!text) return;
+  try{
+    await db.collection('tasks').add({ text, checked:false, ts: Date.now() });
+    input.value = '';
+  }catch(e){
+    console.error(e);
+    alert('Gagal menyimpan tugas. Cek koneksi internet.');
+  }
+}
+async function toggleTask(id){
+  if(!firebaseReady) return;
+  const t = state.tasks.find(x=>x.id===id);
+  if(!t) return;
+  try{
+    await db.collection('tasks').doc(id).update({ checked: !t.checked });
+  }catch(e){ console.error(e); }
+}
+async function deleteTask(id){
+  if(!firebaseReady) return;
+  try{
+    await db.collection('tasks').doc(id).delete();
+  }catch(e){ console.error(e); }
+}
+function renderTasks(){
+  const list = document.getElementById('task-list');
+  const tasks = [...state.tasks].sort((a,b)=> b.ts - a.ts);
+  if(!tasks.length){
+    list.innerHTML = `<div class="empty-state">Belum ada tugas. Tambahkan di atas.</div>`;
+    return;
+  }
+  list.innerHTML = tasks.map(t=>`
+    <div class="task-item">
+      <input type="checkbox" ${t.checked?'checked':''} onchange="toggleTask('${t.id}')">
+      <div class="task-text ${t.checked?'done':''}">${escapeHTML(t.text)}</div>
+      <button class="icon-btn del" onclick="deleteTask('${t.id}')">🗑️</button>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   HOME AGGREGATION
+============================================================ */
+function renderHome(){
+  const ppmPending = state.ppm.filter(i=>!i.checked);
+  const pmpPending = state.pmp.filter(i=>!i.checked);
+  const poPending = state.po.filter(i=>!i.checked);
+  const taskPending = state.tasks.filter(t=>!t.checked);
+
+  document.getElementById('stat-ppm-pending').textContent = ppmPending.length;
+  document.getElementById('stat-pmp-pending').textContent = pmpPending.length;
+  document.getElementById('stat-po-pending').textContent = poPending.length;
+  document.getElementById('stat-total-pending').textContent =
+    ppmPending.length + pmpPending.length + poPending.length + taskPending.length;
+
+  const combined = [
+    ...ppmPending.map(i=>({...i, src:'ppm', label:'PPM'})),
+    ...pmpPending.map(i=>({...i, src:'pmp', label:'PMP'})),
+    ...poPending.map(i=>({...i, src:'po', label:'File PO'})),
+    ...taskPending.map(i=>({...i, src:'task', label:'Tugas', name:i.text}))
+  ].sort((a,b)=> b.ts - a.ts);
+
+  const listEl = document.getElementById('home-pending-list');
+  if(!combined.length){
+    listEl.innerHTML = `<div class="empty-state">Semua sudah diceklist. Kerja bagus! 🎉</div>`;
+    return;
+  }
+  listEl.innerHTML = combined.map(i=>{
+    if(i.src === 'task'){
+      return `
+      <div class="item-card pending">
+        <input type="checkbox" onchange="toggleTask('${i.id}')">
+        <div class="item-icon">📝</div>
+        <div class="item-info">
+          <div class="item-name">${escapeHTML(i.name)}</div>
+          <div class="item-meta">${formatDateTime(i.ts)}</div>
+        </div>
+        <span class="src-tag">${i.label}</span>
+      </div>`;
+    }
+    return `
+      <div class="item-card pending">
+        <input type="checkbox" onchange="toggleCheck('${i.src}','${i.id}')">
+        <div class="item-icon">📄</div>
+        <div class="item-info">
+          <div class="item-name">${escapeHTML(i.name)}</div>
+          <div class="item-meta">${formatDateTime(i.ts)}</div>
+        </div>
+        <span class="src-tag">${i.label}</span>
+      </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   SIDEBAR COUNTS
+============================================================ */
+function renderCounts(){
+  const ppmP = state.ppm.filter(i=>!i.checked).length;
+  const pmpP = state.pmp.filter(i=>!i.checked).length;
+  const poP = state.po.filter(i=>!i.checked).length;
+  const taskP = state.tasks.filter(t=>!t.checked).length;
+
+  document.getElementById('nav-count-ppm').textContent = ppmP;
+  document.getElementById('nav-count-pmp').textContent = pmpP;
+  document.getElementById('nav-count-po').textContent = poP;
+  document.getElementById('nav-count-to').textContent = state.to.length;
+
+  const total = ppmP+pmpP+poP+taskP;
+  const homeCount = document.getElementById('nav-count-home');
+  homeCount.textContent = total;
+  homeCount.style.display = total>0 ? 'inline-block' : 'none';
+
+  [['nav-count-ppm',ppmP],['nav-count-pmp',pmpP],['nav-count-po',poP]].forEach(([elId,val])=>{
+    const el = document.getElementById(elId);
+    if(val>0) el.classList.add('warn'); else el.classList.remove('warn');
+  });
+}
+
+/* ============================================================
+   PDF / IMAGE MODAL
+============================================================ */
+function openPdf(section, id){
+  const item = state[section].find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('modal-title').textContent = item.name;
+  document.getElementById('modal-body').innerHTML = `<iframe src="${item.data}"></iframe>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function openImage(id){
+  const item = state.to.find(i=>i.id===id);
+  if(!item) return;
+  document.getElementById('modal-title').textContent = item.fileName;
+  document.getElementById('modal-body').innerHTML = `<img src="${item.image}">`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-body').innerHTML = '';
+}
+document.getElementById('modal-overlay').addEventListener('click', e=>{
+  if(e.target.id === 'modal-overlay') closeModal();
+});
+
+/* ============================================================
+   MASTER RENDER
+============================================================ */
+function renderAll(){
+  renderChecklistSection('ppm');
+  renderChecklistSection('pmp');
+  renderPOGroups();
+  renderTO();
+  renderTasks();
+  renderHome();
+  renderCounts();
+}
+
+document.getElementById('task-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') addTask();
+});
+
+renderAll();
+attachListeners();
+</script>
+</body>
+</html>
